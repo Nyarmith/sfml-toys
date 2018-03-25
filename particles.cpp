@@ -10,15 +10,16 @@ struct particle : sf::CircleShape{
 };
 
 // globals begin
-const int NUM_PARTICLES = 50;
-const float PARTICLE_MASS_MEAN = 2.3;
-const float PARTICLE_MASS_VARIANCE = 36;
-const float PARTICLE_GRAVITY = 12;
-const float MIN_PARTICLE_MASS = .6;
-const float MIN_PARTICLE_DIST = 2.8;
+const int NUM_PARTICLES = 65;
+const float PARTICLE_MASS_MEAN = 1.88;
+const float PARTICLE_MASS_VARIANCE = 121.0;
+const float PARTICLE_MASS_SCALING = 1.0/2.55;
+const float PARTICLE_GRAVITY = 6.0;
+const float MIN_PARTICLE_MASS = 0.8;
+const float MIN_PARTICLE_DIST = 1.0;
 const int SCREEN_WIDTH  = 1024;
 const int SCREEN_HEIGHT = 768;
-const float MOUSE_ATTRACTION = 10000;
+const float MOUSE_ATTRACTION = 4200;
 //non-const
 particle particle_pool[NUM_PARTICLES];
 bool mousedown = false;
@@ -78,7 +79,8 @@ void computeParticleGravity(float dt){
       particle &b = particle_pool[j];
       sf::Vector2f d = b.getPosition() - a.getPosition();
       float r = size(d);
-      r = r > (MIN_PARTICLE_DIST/2) ? r : (MIN_PARTICLE_DIST/2);
+      float mindist = (a.getRadius() + b.getRadius())/2.0f;
+      r = r > mindist ? r : mindist;
       float F = dt * a.mass * b.mass * PARTICLE_GRAVITY / (r*r);
       d = norm(d);
       a.velocity += d*F/a.mass;
@@ -121,16 +123,16 @@ void initParticles(){
   generator.seed(std::random_device()());
   std::uniform_real_distribution<float> xpos_dis(0,SCREEN_WIDTH);
   std::uniform_real_distribution<float> ypos_dis(0,SCREEN_HEIGHT);
-  std::exponential_distribution<float> mass_dis(1.0/PARTICLE_MASS_VARIANCE);
+  std::exponential_distribution<float> mass_dis(PARTICLE_MASS_MEAN);
 
   for(int i=0;i<NUM_PARTICLES;++i){
     float mass=-1;
     //while (mass<=MIN_PARTICLE_MASS)  //rejection sampling
-    mass = mass_dis(generator) + MIN_PARTICLE_MASS;
+    mass = mass_dis(generator)*PARTICLE_MASS_VARIANCE + MIN_PARTICLE_MASS;
     particle_pool[i].setPosition(xpos_dis(generator),ypos_dis(generator));
     particle_pool[i].velocity = sf::Vector2f(0,0);
     particle_pool[i].mass = mass;
-    particle_pool[i].setRadius(std::sqrt(mass));
+    particle_pool[i].setRadius(std::pow(mass,PARTICLE_MASS_SCALING));
     particle_pool[i].setOutlineColor(sf::Color::Blue);
   }
 }
