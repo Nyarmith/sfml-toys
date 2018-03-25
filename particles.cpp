@@ -1,4 +1,5 @@
 #include <SFML/Graphics.hpp>
+#include <random>
 #include <cstdlib>
 #include <cmath>
 
@@ -9,12 +10,17 @@ struct particle : sf::CircleShape{
 };
 
 // globals begin
-const int NUM_PARTICLES = 100;
-const int MAX_PARTICLE_MASS = 5;
-particle particle_pool[NUM_PARTICLES];
+const int NUM_PARTICLES = 60;
+const float PARTICLE_MASS_MEAN = 3.2;
+const float PARTICLE_MASS_VARIANCE = 3;
+const float PARTICLE_GRAVITY = 20;
+const float MIN_PARTICLE_MASS = .32;
+const float MIN_PARTICLE_DIST = 1.3;
 const int SCREEN_WIDTH  = 1024;
 const int SCREEN_HEIGHT = 768;
-const float MOUSE_ATTRACTION = 420;
+const float MOUSE_ATTRACTION = 8000;
+//non-const
+particle particle_pool[NUM_PARTICLES];
 bool mousedown = false;
 sf::Vector2f mousepos;
 // globals end
@@ -60,8 +66,25 @@ sf::Vector2f norm(const sf::Vector2f &in){
 sf::Vector2f mouseForce(const sf::Vector2f &p){
   sf::Vector2f d =  mousepos - p;
   float r = size(d);
-  r = r > .5 ? r : .5;  //speed limit
+  r = r > MIN_PARTICLE_DIST ? r : MIN_PARTICLE_DIST;  //speed limit
   return norm(d)*MOUSE_ATTRACTION/(r*r);
+}
+
+//pairwise gravitational influence
+void computeParticleGravity(float dt){
+  for(int i=0;i<NUM_PARTICLES;++i){
+    for(int j=i+1;j<NUM_PARTICLES;++j){
+      particle &a = particle_pool[i];
+      particle &b = particle_pool[j];
+      sf::Vector2f d = b.getPosition() - a.getPosition();
+      float r = size(d);
+      r = r > (MIN_PARTICLE_DIST/2) ? r : (MIN_PARTICLE_DIST/2);
+      float F = dt * a.mass * b.mass * PARTICLE_GRAVITY / (r*r);
+      d = norm(d);
+      a.velocity += d*F/a.mass;
+      b.velocity += (-d)*F/a.mass;
+    }
+  }
 }
 
 void updateParticles(float dt){
@@ -77,6 +100,8 @@ void updateParticles(float dt){
     if (nextPos.y < 0 || nextPos.y > SCREEN_HEIGHT)
       p.velocity.y *= -1;
 
+    computeParticleGravity(dt);
+
     p.setPosition(p.getPosition() + p.velocity*dt);
   }
 }
@@ -91,10 +116,18 @@ void renderParticles(sf::RenderWindow &w){
 
 
 void initParticles(){
-  srand(time(NULL));
+  //distiributions
+  std::default_random_engine generator;
+  generator.seed(std::random_device()());
+  std::uniform_real_distribution<float> xpos_dis(0,SCREEN_WIDTH);
+  std::uniform_real_distribution<float> ypos_dis(0,SCREEN_HEIGHT);
+  std::normal_distribution<float> mass_dis(PARTICLE_MASS_MEAN, PARTICLE_MASS_VARIANCE);
+
   for(int i=0;i<NUM_PARTICLES;++i){
-    float mass = rand() % MAX_PARTICLE_MASS + 1.0;
-    particle_pool[i].setPosition(rand()%SCREEN_WIDTH,rand()%SCREEN_HEIGHT);
+    float mass=-1;
+    while (mass<=MIN_PARTICLE_MASS)  //rejection sampling
+      mass = mass_dis(generator);
+    particle_pool[i].setPosition(xpos_dis(generator),ypos_dis(generator));
     particle_pool[i].velocity = sf::Vector2f(0,0);
     particle_pool[i].mass = mass;
     particle_pool[i].setRadius(std::sqrt(mass));
@@ -107,7 +140,7 @@ void initParticles(){
 int framenum=0;
 int main()
 {
-  sf::RenderWindow win(sf::VideoMode(1024,768), "Particle Attraction Demo");
+  sf::RenderWindow win(sf::VideoMode(SCREEN_WIDTH,SCREEN_HEIGHT), "Particle Attraction Demo");
 
   initParticles();
 
