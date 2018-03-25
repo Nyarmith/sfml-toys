@@ -10,15 +10,15 @@ struct particle : sf::CircleShape{
 };
 
 // globals begin
-const int NUM_PARTICLES = 60;
-const float PARTICLE_MASS_MEAN = 3.2;
-const float PARTICLE_MASS_VARIANCE = 3;
-const float PARTICLE_GRAVITY = 20;
-const float MIN_PARTICLE_MASS = .32;
-const float MIN_PARTICLE_DIST = 1.3;
+const int NUM_PARTICLES = 50;
+const float PARTICLE_MASS_MEAN = 2.3;
+const float PARTICLE_MASS_VARIANCE = 36;
+const float PARTICLE_GRAVITY = 12;
+const float MIN_PARTICLE_MASS = .6;
+const float MIN_PARTICLE_DIST = 2.8;
 const int SCREEN_WIDTH  = 1024;
 const int SCREEN_HEIGHT = 768;
-const float MOUSE_ATTRACTION = 8000;
+const float MOUSE_ATTRACTION = 10000;
 //non-const
 particle particle_pool[NUM_PARTICLES];
 bool mousedown = false;
@@ -82,7 +82,7 @@ void computeParticleGravity(float dt){
       float F = dt * a.mass * b.mass * PARTICLE_GRAVITY / (r*r);
       d = norm(d);
       a.velocity += d*F/a.mass;
-      b.velocity += (-d)*F/a.mass;
+      b.velocity += (-d)*F/b.mass;
     }
   }
 }
@@ -121,12 +121,12 @@ void initParticles(){
   generator.seed(std::random_device()());
   std::uniform_real_distribution<float> xpos_dis(0,SCREEN_WIDTH);
   std::uniform_real_distribution<float> ypos_dis(0,SCREEN_HEIGHT);
-  std::normal_distribution<float> mass_dis(PARTICLE_MASS_MEAN, PARTICLE_MASS_VARIANCE);
+  std::exponential_distribution<float> mass_dis(1.0/PARTICLE_MASS_VARIANCE);
 
   for(int i=0;i<NUM_PARTICLES;++i){
     float mass=-1;
-    while (mass<=MIN_PARTICLE_MASS)  //rejection sampling
-      mass = mass_dis(generator);
+    //while (mass<=MIN_PARTICLE_MASS)  //rejection sampling
+    mass = mass_dis(generator) + MIN_PARTICLE_MASS;
     particle_pool[i].setPosition(xpos_dis(generator),ypos_dis(generator));
     particle_pool[i].velocity = sf::Vector2f(0,0);
     particle_pool[i].mass = mass;
