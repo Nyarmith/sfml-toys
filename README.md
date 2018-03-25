@@ -2,7 +2,7 @@
 Some fun stuff I made while learning more about libsfml
 
 Cool Demo Tier List:
-<ol type="B">
+<ol type="a">
   <li>particles</li>
 </ol>
 
