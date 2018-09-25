@@ -50,17 +50,20 @@ glm::vec3 intersect(glm::vec3 c, glm::vec3 g, std::vector<glm::vec3> &newnormals
   //for each triangle
   for (int i=0; i<g_indices.size()/3; ++i){
     //does it even show up?
-    float K = glm::abs(glm::dot(newnormals[i],g));
+    float K = glm::dot(newnormals[i],g);
+    if (K > 0)
+      continue;
 
     //compute a,b and test if I intersect
     glm::vec3 a = newvertices[g_indices[i*3+2]] - newvertices[g_indices[i*3]];
     glm::vec3 b = newvertices[g_indices[i*3+1]] - newvertices[g_indices[i*3]];
 
-    glm::vec3 res = glm::inverse(glm::mat3(a,b,-g))*c;
-    if (res.y+res.x < 1 && res.x > 0 && res.y >0 && res.z > 0)
+    glm::vec3 res = glm::inverse(glm::mat3(a,b,-g))*(c-newvertices[g_indices[i*3]]);
+    if (res.y+res.x <= 1 && res.x >= 0 && res.y >=0 && res.z >= 0){
+      K = (glm::dot(glm::normalize(glm::vec3(-.3,-.3,1)),newnormals[i]) + 1.0) / 2.0; //light
       return {K,K,K};
+    }
   }
-
   return {0,0,0};
 }
 
